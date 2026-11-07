@@ -1,31 +1,30 @@
+
 version: 0.2
 
-env:
-  parameter-store:
-    DOCKER_REGISTRY_USERNAME: /myapp/docker-credentials/username
-    DOCKER_REGISTRY_PASSWORD: /myapp/docker-credentials/password
-    DOCKER_REGISTRY_URL: /myapp/docker-registry/url
 phases:
   install:
     runtime-versions:
       python: 3.11
+
   pre_build:
     commands:
-      - echo "Installing dependencies..."
-      - pip install -r day-13/simple-python-app/requirements.txt
+      - echo "Installing Python dependencies..."
+      - pip install -r simple-python-app/requirements.txt
+
   build:
     commands:
-      - echo "Running tests..."
-      - cd day-13/simple-python-app/
-      - echo "Building Docker image..."
-      - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
-      - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/simple-python-flask-app:latest" .
-      - docker push "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/simple-python-flask-app:latest"
+      - echo "Checking Python syntax..."
+      - (cd simple-python-app && python -m py_compile app.py)
+      - echo "Testing Flask application..."
+      - (cd simple-python-app && python -c "from app import app; client = app.test_client(); response = client.get('/'); assert response.status_code == 200; assert response.data == b'Hello, world!'; print('Flask application test passed!')")
+
   post_build:
     commands:
       - echo "Build completed successfully!"
+
 artifacts:
   files:
-    - '**/*'
-  base-directory: ../simple-python-app
+    - app.py
+    - requirements.txt
+  base-directory: simple-python-app
 
